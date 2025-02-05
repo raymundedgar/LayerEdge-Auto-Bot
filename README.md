@@ -17,7 +17,7 @@
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/airdropinsiders/LayerEdge-Auto-Bot.git
+    git clone https://github.com/raymundedgar/LayerEdge-Auto-Bot.git
     cd LayerEdge-Auto-Bot
     ```
 
