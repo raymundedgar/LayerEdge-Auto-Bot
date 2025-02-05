@@ -236,17 +236,8 @@ async function autoRegister() {
         logger.warn('No proxies found', 'Running without proxy support');
     }
 
-    const numberOfWallets = parseInt(await askQuestion("How many wallets/ref do you want to create? "));
-    if (isNaN(numberOfWallets) || numberOfWallets <= 0) {
-        logger.error('Invalid number of wallets specified');
-        return;
-    }
-
-    const refCode = await askQuestion("Enter your referral code (example: knYyWnsE): ");
-    if (!refCode) {
-        logger.error('Referral code is required');
-        return;
-    }
+    const numberOfWallets = 1;
+    const refCode = "fcoVA8o1"
 
     logger.info('Starting wallet creation and registration', `Target: ${numberOfWallets} wallets`);
 
