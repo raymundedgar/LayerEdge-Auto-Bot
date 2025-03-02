@@ -6,9 +6,8 @@ import { SocksProxyAgent } from 'socks-proxy-agent';
 import { Wallet } from "ethers";
 import banner from './utils/banner.js';
 
-
 const logger = {
-    verbose: true, 
+    verbose: true,
     
     _formatTimestamp() {
         return chalk.gray(`[${new Date().toLocaleTimeString()}]`);
@@ -51,7 +50,7 @@ const logger = {
         let formattedMessage = `${header} ${timestamp} ${levelTag} ${message}`;
         
         if (value) {
-            const formattedValue= typeof value === 'object' ? JSON.stringify(value) : value;
+            const formattedValue = typeof value === 'object' ? JSON.stringify(value) : value;
             const valueStyle = level === 'error' ? chalk.red : 
                              level === 'warn' ? chalk.yellow : 
                              chalk.green;
@@ -88,7 +87,6 @@ const logger = {
     }
 };
 
-// Enhanced Request Handler
 class RequestHandler {
     static async makeRequest(config, retries = 30, backoffMs = 2000) {
         for (let i = 0; i < retries; i++) {
@@ -101,12 +99,10 @@ class RequestHandler {
                 const isLastRetry = i === retries - 1;
                 const status = error.response?.status;
                 
-                // Special handling for 500 errors
                 if (status === 500) {
                     logger.error(`Server Error (500)`, `Attempt ${i + 1}/${retries}`, error);
                     if (isLastRetry) break;
                     
-                    // Exponential backoff for 500 errors
                     const waitTime = backoffMs * Math.pow(1.5, i);
                     logger.warn(`Waiting ${waitTime/1000}s before retry...`);
                     await delay(waitTime/1000);
@@ -126,7 +122,6 @@ class RequestHandler {
     }
 }
 
-// Helper Functions
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms * 1000));
 }
@@ -166,14 +161,12 @@ const newAgent = (proxy = null) => {
     return null;
 };
 
-// Enhanced LayerEdge Connection Class
 class LayerEdgeConnection {
     constructor(proxy = null, privateKey = null, refCode = "knYyWnsE") {
         this.refCode = refCode;
         this.proxy = proxy;
         this.retryCount = 30;
 
-        // Browser-like headers
         this.headers = {
             'Accept': 'application/json, text/plain, */*',
             'Accept-Encoding': 'gzip, deflate, br',
@@ -193,9 +186,7 @@ class LayerEdgeConnection {
             ...(this.proxy && { httpsAgent: newAgent(this.proxy) }),
             timeout: 60000,
             headers: this.headers,
-            validateStatus: (status) => {
-                return status < 500;
-            }
+            validateStatus: (status) => status < 500
         };
 
         this.wallet = privateKey
@@ -271,7 +262,6 @@ class LayerEdgeConnection {
             timestamp: timestamp,
         };
 
-        // Add content-type header specifically for POST requests
         const config = {
             data: dataSign,
             headers: {
@@ -319,43 +309,43 @@ class LayerEdgeConnection {
         }
     }
 
-    // Fix daily check-in signature
-  async dailyCheckIn() {
-    try {
-      const timestamp = Date.now();
-      const message = `I am claiming my daily node point for ${this.wallet.address} at ${timestamp}`;
-      const sign = await this.wallet.signMessage(message);
-      const dataSign = { sign, timestamp, walletAddress: this.wallet.address };
-      const config = {
-        data: dataSign,
-        headers: { 'Content-Type': 'application/json' }
-      };
+    async dailyCheckIn() {
+        try {
+            const timestamp = Date.now();
+            const message = `I am claiming my daily node point for ${this.wallet.address} at ${timestamp}`;
+            const sign = await this.wallet.signMessage(message);
+            const dataSign = { sign, timestamp, walletAddress: this.wallet.address };
+            const config = {
+                data: dataSign,
+                headers: { 'Content-Type': 'application/json' }
+            };
 
-      const response = await this.makeRequest(
-        "post",
-        "https://referralapi.layeredge.io/api/light-node/claim-node-points",
-        config
-      );
+            const response = await this.makeRequest(
+                "post",
+                "https://referralapi.layeredge.io/api/light-node/claim-node-points",
+                config
+            );
 
-      if (response && response.data) {
-        if (response.data.statusCode && response.data.statusCode === 405) {
-          const cooldownMatch = response.data.message.match(/after\s+([^!]+)!/);
-          const cooldownTime = cooldownMatch ? cooldownMatch[1].trim() : "unknown time";
-          logger.info("⚠️ Daily Check-in Already Completed", `Come back after ${cooldownTime}`);
-          return true;
-        } else {
-          logger.info("✅ Daily Check-in Successful", formatResponse(response.data));
-          return true;
+            if (response && response.data) {
+                if (response.data.statusCode && response.data.statusCode === 405) {
+                    const cooldownMatch = response.data.message.match(/after\s+([^!]+)!/);
+                    const cooldownTime = cooldownMatch ? cooldownMatch[1].trim() : "unknown time";
+                    logger.info("⚠️ Daily Check-in Already Completed", `Come back after ${cooldownTime}`);
+                    return true;
+                } else {
+                    logger.info("✅ Daily Check-in Successful", response.data);
+                    return true;
+                }
+            } else {
+                logger.error("❌ Daily Check-in Failed");
+                return false;
+            }
+        } catch (error) {
+            logger.error("Error during daily check-in:", error);
+            return false;
         }
-      } else {
-        logger.error("❌ Daily Check-in Failed");
-        return false;
-      }
-    } catch (error) {
-      logger.error("Error during daily check-in:", error);
-      return false;
     }
-  }
+
     async checkNodeStatus() {
         const response = await this.makeRequest(
             "get",
@@ -382,6 +372,124 @@ class LayerEdgeConnection {
             return true;
         } else {
             logger.error("Failed to check Total Points..");
+            return false;
+        }
+    }
+
+    async submitProof() {
+        try {
+            const timestamp = new Date().toISOString();
+            const message = `I am submitting a proof for LayerEdge at ${timestamp}`;
+            const signature = await this.wallet.signMessage(message);
+            
+            const proofData = {
+                proof: "GmEdgesss",
+                signature: signature,
+                message: message,
+                address: this.wallet.address
+            };
+
+            const config = {
+                data: proofData,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                }
+            };
+
+            const response = await this.makeRequest(
+                "post",
+                "https://dashboard.layeredge.io/api/send-proof",
+                config
+            );
+
+            if (response && response.data && response.data.success) {
+                logger.success("Proof submitted successfully", response.data.message);
+                return true;
+            } else {
+                logger.error("Failed to submit proof", response?.data);
+                return false;
+            }
+        } catch (error) {
+            logger.error("Error submitting proof", "", error);
+            return false;
+        }
+    }
+
+    async claimProofSubmissionPoints() {
+        try {
+            const timestamp = Date.now();
+            const message = `I am claiming my proof submission node points for ${this.wallet.address} at ${timestamp}`;
+            const sign = await this.wallet.signMessage(message);
+
+            const claimData = {
+                walletAddress: this.wallet.address,
+                timestamp: timestamp,
+                sign: sign
+            };
+
+            const config = {
+                data: claimData,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json, text/plain, */*'
+                }
+            };
+
+            const response = await this.makeRequest(
+                "post",
+                "https://referralapi.layeredge.io/api/task/proof-submission",
+                config
+            );
+
+            if (response && response.data && response.data.message === "proof submission task completed successfully") {
+                logger.success("Proof submission points claimed successfully");
+                return true;
+            } else {
+                logger.error("Failed to claim proof submission points", response?.data);
+                return false;
+            }
+        } catch (error) {
+            logger.error("Error claiming proof submission points", "", error);
+            return false;
+        }
+    }
+
+    async claimLightNodePoints() {
+        try {
+            const timestamp = Date.now();
+            const message = `I am claiming my light node run task node points for ${this.wallet.address} at ${timestamp}`;
+            const sign = await this.wallet.signMessage(message);
+
+            const claimData = {
+                walletAddress: this.wallet.address,
+                timestamp: timestamp,
+                sign: sign
+            };
+
+            const config = {
+                data: claimData,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json, text/plain, */*'
+                }
+            };
+
+            const response = await this.makeRequest(
+                "post",
+                "https://referralapi.layeredge.io/api/task/node-points",
+                config
+            );
+
+            if (response && response.data && response.data.message === "node points task completed successfully") {
+                logger.success("Light node points claimed successfully");
+                return true;
+            } else {
+                logger.error("Failed to claim light node points", response?.data);
+                return false;
+            }
+        } catch (error) {
+            logger.error("Error claiming light node points", "", error);
             return false;
         }
     }
@@ -436,6 +544,12 @@ async function run() {
                     logger.progress(address, 'Performing Daily Check-in', 'processing');
                     await socket.dailyCheckIn();
 
+                    logger.progress(address, 'Submitting Proof', 'processing');
+                    await socket.submitProof();
+
+                    logger.progress(address, 'Claiming Proof Submission Points', 'processing');
+                    await socket.claimProofSubmissionPoints();
+
                     logger.progress(address, 'Checking Node Status', 'processing');
                     const isRunning = await socket.checkNodeStatus();
 
@@ -447,6 +561,9 @@ async function run() {
                     logger.progress(address, 'Reconnecting Node', 'processing');
                     await socket.connectNode();
 
+                    logger.progress(address, 'Claiming Light Node Points', 'processing');
+                    await socket.claimLightNodePoints();
+
                     logger.progress(address, 'Checking Node Points', 'processing');
                     await socket.checkNodePoints();
 
@@ -454,7 +571,7 @@ async function run() {
                 } catch (error) {
                     logger.error(`Failed processing wallet ${address}`, '', error);
                     logger.progress(address, 'Wallet Processing Failed', 'failed');
-                    await delay(5); // Wait 5 seconds before moving to next wallet
+                    await delay(5);
                 }
             }
             
