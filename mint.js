@@ -249,8 +249,8 @@ async function run() {
     const wallet = wallets[0];
     const { address, privateKey } = wallet;
 
-    mint( address, privateKey );
-    verifyNFT( address, privateKey );
+    await mint( address, privateKey );
+    await verifyNFT( address, privateKey );
 }
 
 run();
