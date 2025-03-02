@@ -27,6 +27,10 @@ async function readWallets() {
     }
 }
 
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms * 1000));
+}
+
 async function mint(toAddress, privateKey) {
     // Create a wallet signer
     const wallet = new ethers.Wallet(privateKey, provider);
